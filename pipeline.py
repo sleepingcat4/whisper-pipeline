@@ -37,14 +37,16 @@ def process_audio_file(input_file, model):
 
     return transcriptions
 
-def save_transcription_to_csv(audio_file, transcriptions):
-    csv_file = audio_file.replace(".wav", ".csv")
+def save_transcription_to_csv(audio_file, transcriptions, output_folder):
+    file_name = os.path.basename(audio_file).replace(".wav", ".csv")
+    csv_file = os.path.join(output_folder, file_name)
+    
     with open(csv_file, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
         writer.writerow(["Start Time", "End Time", "Transcription"])
         writer.writerows(transcriptions)
 
-def process_folder(folder_path, model):
+def process_folder(folder_path, output_folder, model):
     start_time = time.time()
     
     for file_name in os.listdir(folder_path):
@@ -52,7 +54,7 @@ def process_folder(folder_path, model):
             input_file = os.path.join(folder_path, file_name)
             print(f"Processing {file_name}...")
             transcriptions = process_audio_file(input_file, model)
-            save_transcription_to_csv(input_file, transcriptions)
+            save_transcription_to_csv(input_file, transcriptions, output_folder)
             print(f"Transcription saved for {file_name}")
     
     end_time = time.time()
@@ -62,12 +64,17 @@ def process_folder(folder_path, model):
 
 def main():
     input_folder = input("Please provide the path to your folder containing audio files: ")
+    output_folder = input("Please provide the folder where you want to save the transcription CSV files: ")
+    
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model("turbo", device=device)
     
     show_duration = input("Do you want to know how many hours it took to process the folder? (yes/no): ").strip().lower()
     
-    total_hours = process_folder(input_folder, model)
+    total_hours = process_folder(input_folder, output_folder, model)
     
     if show_duration == "yes":
         print(f"\nTotal time taken: {total_hours:.2f} hours")
